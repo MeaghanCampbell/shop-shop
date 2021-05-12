@@ -42,7 +42,7 @@ function ProductList() {
       })
     }
     // when that's done useStoreContext executes again giving us the product data needed to display products to the page
-  }, [data, dispatch]);
+  }, [data, loading, dispatch]);
 
   function filterProducts() {
     if (!currentCategory) {

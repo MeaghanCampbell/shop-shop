@@ -41,7 +41,7 @@ function CategoryMenu() {
         })
       })
     }
-  }, [categoryData, dispatch] )
+  }, [categoryData, loading, dispatch] )
 
   function handleClick(id) {
     dispatch({
