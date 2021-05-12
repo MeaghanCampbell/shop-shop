@@ -7,6 +7,7 @@ import { useStoreContext } from "../../utils/GlobalState";
 import { UPDATE_PRODUCTS } from "../../utils/actions";
 import { QUERY_PRODUCTS } from "../../utils/queries";
 import spinner from "../../assets/spinner.gif"
+import { idbPromise } from "../../utils/helpers"
 
 function ProductList() {
   // immediately execute useStoreContext to get current global state, and dispatch to update state
@@ -19,11 +20,26 @@ function ProductList() {
   
   // use effect to wait for useQuery response to come in & tell reducer to update products action and save array of product data to global store
   useEffect(() => {
-    if(data) {
+    if (data) {
       dispatch({
-           type: UPDATE_PRODUCTS,
+          type: UPDATE_PRODUCTS,
           products: data.products
         });
+
+      // take each product and save it to IndexedDB using helper
+      data.products.forEach((product) => {
+        idbPromise('products', 'put', product)
+      })
+      // check if loading is undefined in useQuery()
+      // if useQuery isn't establishing a connection, use data stored in indexedDB instead
+    } else if (!loading) {
+      idbPromise('products', 'get').then((products) => {
+        // use retrieved data to set global state for offline browsing
+        dispatch({
+          type: UPDATE_PRODUCTS,
+          products: products
+        })
+      })
     }
     // when that's done useStoreContext executes again giving us the product data needed to display products to the page
   }, [data, dispatch]);

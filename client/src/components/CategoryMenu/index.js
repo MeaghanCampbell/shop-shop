@@ -5,6 +5,7 @@ import { QUERY_CATEGORIES } from "../../utils/queries";
 // import global state
 import { useStoreContext } from "../../utils/GlobalState"
 import { UPDATE_CATEGORIES, UPDATE_CURRENT_CATEGORY } from "../../utils/actions";
+import { idbPromise } from '../../utils/helpers';
 
 
 function CategoryMenu() {
@@ -15,7 +16,7 @@ function CategoryMenu() {
   // only need categories array out of our global state so destructure out of state 
   const { categories } = state
 
-  const { data: categoryData } = useQuery(QUERY_CATEGORIES)
+  const { loading, data: categoryData } = useQuery(QUERY_CATEGORIES)
 
   // when use query hook returns, the use effect hook notices that category data isn't undefined anymore and runs the dispatch function setting category data to the global state
   // use effect takes in a function to run a condition and the condition - in this case function runs immediately after load or when state changes, and passes in our function to update global state and runs dispatch when usequery
@@ -26,6 +27,18 @@ function CategoryMenu() {
       dispatch({
         type: UPDATE_CATEGORIES,
         categories: categoryData.categories
+      })
+      // write category data to the categories object store in INdexedDB
+      categoryData.categories.forEach(category => {
+        idbPromise('categories', 'put', category)
+      })
+      //check if loading return exists and pull from indexedDB if not
+    } else if (!loading) {
+      idbPromise('categories', 'get').then(categories => {
+        dispatch({
+          type: UPDATE_CATEGORIES,
+          categories: categories
+        })
       })
     }
   }, [categoryData, dispatch] )

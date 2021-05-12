@@ -12,6 +12,7 @@ import {
   UPDATE_PRODUCTS,
 } from '../utils/actions';
 import Cart from '../components/Cart';
+import { idbPromise } from "../utils/helpers";
 
 function Detail() {
   const [state, dispatch] = useStoreContext();
@@ -35,9 +36,21 @@ function Detail() {
         type: UPDATE_PRODUCTS,
         products: data.products
       });
+
+      data.products.forEach((product) => {
+        idbPromise('products', 'put', product)
+      })
+    // get cache from IDB
+    } else if (!loading) {
+      idbPromise('products', 'get').then((indexedProducts) => {
+        dispatch({
+          type: UPDATE_PRODUCTS,
+          products: indexedProducts
+        })
+      })
     }
     // dependency array
-  }, [products, data, dispatch, id]);
+  }, [products, data, loading, dispatch, id]);
 
   const addToCart = () => {
     const itemInCart = cart.find((cartItem) => cartItem._id === id);
