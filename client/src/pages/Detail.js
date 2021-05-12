@@ -4,21 +4,34 @@ import { useQuery } from '@apollo/react-hooks';
 
 import { QUERY_PRODUCTS } from "../utils/queries";
 import spinner from '../assets/spinner.gif'
+import { useStoreContext } from "../utils/GlobalState";
+import { UPDATE_PRODUCTS } from "../utils/actions";
 
 function Detail() {
+  const [state, dispatch] = useStoreContext();
   const { id } = useParams();
-
+  
   const [currentProduct, setCurrentProduct] = useState({})
-
+  
   const { loading, data } = useQuery(QUERY_PRODUCTS);
-
-  const products = data?.products || [];
-
+  
+  const { products } = state;
+  
   useEffect(() => {
+    // check to see if there's data in products array
     if (products.length) {
+      // if there is we use it to figure out which product is the current one we want to display
+      // it does this by finding the one with the matching _id value that we grabbed from useParams() hook
       setCurrentProduct(products.find(product => product._id === id));
+      // if no data, (ie: someone sends you a link to the product before product has state), use product data returned from useQuery hook set to the product data to the gobal state object
+    } else if (data) {
+      dispatch({
+        type: UPDATE_PRODUCTS,
+        products: data.products
+      });
     }
-  }, [products, id]);
+    // dependency array
+  }, [products, data, dispatch, id]);
 
   return (
     <>
