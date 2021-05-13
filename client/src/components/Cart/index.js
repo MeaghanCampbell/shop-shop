@@ -5,11 +5,19 @@ import './style.css';
 import { useStoreContext } from '../../utils/GlobalState';
 import { TOGGLE_CART, ADD_MULTIPLE_TO_CART } from "../../utils/actions";
 import { idbPromise } from "../../utils/helpers";
+import { QUERY_CHECKOUT } from '../../utils/queries';
+import { loadStripe } from '@stripe/stripe-js';
+//another hook like useQuery that won't execute until you tell it to
+import { useLazyQuery } from '@apollo/react-hooks'
+const stripePromise = loadStripe('pk_test_TYooMQauvdEDq54NiTphI7jx');
 
 const Cart = () => {
 
     // custom useStoreContext from global state hook to establish state variable and dispatch function to update it
     const [state, dispatch] = useStoreContext();
+
+    // data contains the checkout session, but only runs after query is called with getCheckout function
+    const [getCheckout, { data }] = useLazyQuery(QUERY_CHECKOUT)
 
     useEffect(() => {
       async function getCart() {
@@ -39,6 +47,30 @@ const Cart = () => {
       return sum.toFixed(2);
     }
 
+    // collect ID's for items being purchased when user hits checkout button
+    // this function loops over items saved in state.cart and add their IDs to a new productIds arrya
+    // the productIds array is what the QUERY_CHECKOUT query would need to generate the Stripe session
+    function submitCheckout() {
+
+      const productIds = [];
+
+      state.cart.forEach((item) => {
+        for (let i = 0; i < item.purchaseQuantity; i++) {
+          productIds.push(item._id)
+        }
+      })
+      // call useLazyQuery hook
+      getCheckout({ variables: { products: productIds }})
+    }
+
+    useEffect(() => {
+      if (data) {
+        stripePromise.then((res) => {
+          res.redirectToCheckout({ sessionId: data.checkout.session });
+        });
+      }
+    }, [data]);
+
     // if cartOpen is false, component returns a smaller div - clicking this div will set cart open to true and toggleCart
     if (!state.cartOpen) {
         return (
@@ -63,7 +95,7 @@ const Cart = () => {
             <strong>Total: ${calculateTotal()}</strong>
             {
               Auth.loggedIn() ?
-                <button>
+                <button onClick={submitCheckout}>
                   Checkout
                 </button>
                 :
